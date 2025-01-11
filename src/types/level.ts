@@ -9,6 +9,7 @@ export interface LevelObjective {
   description: string
   required: number
   current: number
+  completed: boolean
 }
 
 // 关卡配置中的设备要求

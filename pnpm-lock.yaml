@@ -17,6 +17,9 @@ importers:
       framer-motion:
         specifier: ^11.17.0
         version: 11.17.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      lucide-react:
+        specifier: ^0.471.0
+        version: 0.471.0(react@18.3.1)
       postcss:
         specifier: ^8.4.49
         version: 8.4.49
@@ -34,7 +37,7 @@ importers:
         version: 3.4.17
       zustand:
         specifier: ^5.0.3
-        version: 5.0.3(@types/react@18.3.18)(react@18.3.1)
+        version: 5.0.3(@types/react@18.3.18)(react@18.3.1)(use-sync-external-store@1.4.0(react@18.3.1))
     devDependencies:
       '@eslint/js':
         specifier: ^9.17.0
@@ -1019,6 +1022,11 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
+  lucide-react@0.471.0:
+    resolution: {integrity: sha512-3L0OOJClsKDETJGK7nABqW8ftaVmUjWzluzPpw/6dGdI1bOmzsLsCjZpAEpg24Xs/U7xdYveQU+CBkHxWy7MrA==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   merge2@1.4.1:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
@@ -1358,6 +1366,11 @@ packages:
 
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
+
+  use-sync-external-store@1.4.0:
+    resolution: {integrity: sha512-9WXSPC5fMv61vaupRkCKCxsPxBocVnwakBEkMIHHpkTTg6icbJtg6jzgtLDm4bl3cSHAca52rYWih0k4K3PfHw==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
@@ -2341,6 +2354,10 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
+  lucide-react@0.471.0(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+
   merge2@1.4.1: {}
 
   micromatch@4.0.8:
@@ -2681,6 +2698,11 @@ snapshots:
     dependencies:
       punycode: 2.3.1
 
+  use-sync-external-store@1.4.0(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+    optional: true
+
   util-deprecate@1.0.2: {}
 
   vite@6.0.7(@types/node@22.10.5)(jiti@1.21.7)(yaml@2.7.0):
@@ -2718,7 +2740,8 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zustand@5.0.3(@types/react@18.3.18)(react@18.3.1):
+  zustand@5.0.3(@types/react@18.3.18)(react@18.3.1)(use-sync-external-store@1.4.0(react@18.3.1)):
     optionalDependencies:
       '@types/react': 18.3.18
       react: 18.3.1
+      use-sync-external-store: 1.4.0(react@18.3.1)

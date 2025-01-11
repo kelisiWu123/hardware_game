@@ -148,11 +148,3 @@ const processComputerPacket = (packet: Packet, device: Device): ProcessResult =>
 
   return { nextDeviceId: null, delay: 0, error: '计算机不能转发数据包' }
 }
-
-// 计算两点之间的位置
-export const calculatePacketPosition = (sourcePos: { x: number; y: number }, targetPos: { x: number; y: number }, progress: number): { x: number; y: number } => {
-  return {
-    x: sourcePos.x + (targetPos.x - sourcePos.x) * progress,
-    y: sourcePos.y + (targetPos.y - sourcePos.y) * progress,
-  }
-}

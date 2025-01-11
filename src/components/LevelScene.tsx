@@ -4,6 +4,19 @@ import type { LevelConfig, LevelObjective } from '../types/level'
 import type { Device, Connection } from '../types/device'
 import { useLevelProgressStore } from '../stores/levelProgressStore'
 import GameCanvas from './GameCanvas'
+import PacketAnimation from './PacketAnimation'
+
+interface Point {
+  x: number
+  y: number
+}
+
+interface PacketInfo {
+  id: string
+  start: Point
+  end: Point
+  status: 'transmitting' | 'received' | 'error'
+}
 
 interface LevelSceneProps {
   level: LevelConfig
@@ -19,6 +32,7 @@ const LevelScene = ({ level, onComplete, onExit }: LevelSceneProps) => {
   const [timeRemaining, setTimeRemaining] = useState(level.timeLimit || 0)
   const [isRunning, setIsRunning] = useState(false)
   const [message, setMessage] = useState('')
+  const [activePackets, setActivePackets] = useState<PacketInfo[]>([])
 
   // 游戏数据
   const successfulConnections = useRef(0)
@@ -145,13 +159,74 @@ const LevelScene = ({ level, onComplete, onExit }: LevelSceneProps) => {
   }
 
   // 处理数据包事件
-  const handlePacketEvent = (event: { type: string }) => {
-    if (event.type === 'start') {
+  const handlePacketEvent = (event: { type: string; sourceId?: string; targetId?: string }) => {
+    console.log('Packet event:', event)
+
+    if (event.type === 'start' && event.sourceId && event.targetId) {
       totalPackets.current++
+
+      // 获取源设备和目标设备
+      const sourceDevice = devices.find((d) => d.id === event.sourceId)
+      const targetDevice = devices.find((d) => d.id === event.targetId)
+
+      if (sourceDevice && targetDevice) {
+        // 计算设备中心点位置
+        const getDeviceCenter = (device: Device): Point => ({
+          x: device.position.x + 64,
+          y: device.position.y + 64,
+        })
+
+        const sourceCenter = getDeviceCenter(sourceDevice)
+        const targetCenter = getDeviceCenter(targetDevice)
+
+        console.log('Creating packet animation:', {
+          source: sourceCenter,
+          target: targetCenter,
+          sourceDevice: sourceDevice.position,
+          targetDevice: targetDevice.position,
+        })
+
+        const packetId = `packet-${Date.now()}`
+        const newPacket: PacketInfo = {
+          id: packetId,
+          start: sourceCenter,
+          end: targetCenter,
+          status: 'transmitting',
+        }
+
+        setActivePackets((prev) => {
+          console.log('Current active packets:', prev)
+          console.log('Adding new packet:', newPacket)
+          return [...prev, newPacket]
+        })
+      } else {
+        console.warn('Source or target device not found:', { sourceId: event.sourceId, targetId: event.targetId })
+      }
     } else if (event.type === 'receive') {
+      console.log('Packet received')
       successfulPackets.current++
       checkObjectives()
     }
+  }
+
+  // 处理数据包动画完成
+  const handlePacketComplete = (packetId: string) => {
+    console.log('Packet animation complete:', packetId)
+
+    setActivePackets((prev) => {
+      const packet = prev.find((p) => p.id === packetId)
+      if (packet) {
+        console.log('Updating packet status:', packet)
+        return prev.map((p) => (p.id === packetId ? { ...p, status: 'received' } : p))
+      }
+      return prev
+    })
+
+    // 延迟移除已完成的数据包
+    setTimeout(() => {
+      console.log('Removing completed packet:', packetId)
+      setActivePackets((prev) => prev.filter((p) => p.id !== packetId))
+    }, 500)
   }
 
   return (
@@ -194,8 +269,21 @@ const LevelScene = ({ level, onComplete, onExit }: LevelSceneProps) => {
       </div>
 
       {/* 游戏画布 */}
-      <div className="p-4">
+      <div className="p-4 h-[calc(100vh-8rem)] relative">
         <GameCanvas devices={devices} onDevicesChange={handleDevicesUpdate} connections={connections} onConnectionsChange={handleConnectionsUpdate} onPacketEvent={handlePacketEvent} />
+
+        {/* 数据包动画 */}
+        {activePackets.map((packet) => (
+          <PacketAnimation
+            key={packet.id}
+            start={packet.start}
+            end={packet.end}
+            color={packet.status === 'error' ? '#EF4444' : '#3B82F6'}
+            size={16}
+            duration={1}
+            onComplete={() => handlePacketComplete(packet.id)}
+          />
+        ))}
       </div>
 
       {/* 消息提示 */}

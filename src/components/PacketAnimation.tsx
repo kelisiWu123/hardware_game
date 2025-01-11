@@ -1,100 +1,135 @@
 import { motion } from 'framer-motion'
-import type { Packet } from '../types/packet'
 
-interface PacketAnimationProps {
-  packet: Packet
+interface Point {
+  x: number
+  y: number
 }
 
-const PacketAnimation = ({ packet }: PacketAnimationProps) => {
-  const getStatusColor = () => {
-    switch (packet.status) {
-      case 'transmitting':
-        return 'bg-blue-500'
-      case 'received':
-        return 'bg-green-500'
-      case 'error':
-        return 'bg-red-500'
-      default:
-        return 'bg-gray-500'
-    }
-  }
+interface PacketAnimationProps {
+  start: Point
+  end: Point
+  onComplete?: () => void
+  color?: string
+  size?: number
+  duration?: number
+}
 
+const PacketAnimation = ({ start, end, color = '#3B82F6', size = 12, duration = 1, onComplete }: PacketAnimationProps) => {
   return (
     <motion.div
       className="absolute pointer-events-none"
       style={{
-        left: packet.position.x,
-        top: packet.position.y,
-        width: '16px',
-        height: '16px',
+        width: size * 2,
+        height: size * 2,
       }}
-      initial={{ scale: 0, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0, opacity: 0 }}
-      transition={{ duration: 0.2 }}
+      initial={{
+        x: start.x - size,
+        y: start.y - size,
+        scale: 0,
+        opacity: 0,
+      }}
+      animate={{
+        x: end.x - size,
+        y: end.y - size,
+        scale: 1,
+        opacity: 1,
+      }}
+      exit={{
+        scale: 0,
+        opacity: 0,
+      }}
+      transition={{
+        duration,
+        ease: 'easeInOut',
+      }}
+      onAnimationComplete={onComplete}
     >
-      {/* 主数据包 */}
+      {/* 核心圆点 */}
       <motion.div
-        className={`
-          w-full h-full rounded-full
-          ${getStatusColor()}
-          shadow-lg
-        `}
+        className="absolute rounded-full"
+        style={{
+          width: size,
+          height: size,
+          left: size / 2,
+          top: size / 2,
+          backgroundColor: color,
+          boxShadow: `0 0 20px ${color}, 0 0 60px ${color}`,
+        }}
         animate={{
           scale: [1, 1.2, 1],
-          opacity: [1, 0.8, 1],
+        }}
+        transition={{
+          duration: 0.6,
+          repeat: Infinity,
+        }}
+      />
+
+      {/* 外环 */}
+      <motion.div
+        className="absolute rounded-full border-2"
+        style={{
+          width: size * 2,
+          height: size * 2,
+          borderColor: color,
+          opacity: 0.6,
+        }}
+        animate={{
+          scale: [1, 1.5],
+          opacity: [0.6, 0],
         }}
         transition={{
           duration: 1,
           repeat: Infinity,
-          ease: 'easeInOut',
         }}
       />
 
-      {/* 轨迹效果 */}
+      {/* 尾迹效果 */}
       <motion.div
-        className={`
-          absolute top-0 left-0 w-full h-full rounded-full
-          ${getStatusColor()}
-          opacity-50
-        `}
-        initial={{ scale: 1 }}
-        animate={{ scale: 2, opacity: 0 }}
-        transition={{
-          duration: 0.5,
-          repeat: Infinity,
+        className="absolute"
+        style={{
+          width: size * 3,
+          height: 2,
+          backgroundColor: color,
+          left: -size,
+          top: size - 1,
+          filter: 'blur(4px)',
+          transformOrigin: '100% 50%',
         }}
-      />
-
-      {/* 发光效果 */}
-      <motion.div
-        className={`
-          absolute top-0 left-0 w-full h-full rounded-full
-          ${getStatusColor()}
-          filter blur-sm
-        `}
         animate={{
-          scale: [1, 1.5, 1],
-          opacity: [0.5, 0.2, 0.5],
+          scaleX: [1, 0],
+          opacity: [0.8, 0],
         }}
         transition={{
-          duration: 1.5,
+          duration: 0.2,
           repeat: Infinity,
-          ease: 'easeInOut',
         }}
       />
 
-      {/* 状态指示器 */}
-      {packet.status === 'error' && (
+      {/* 粒子效果 */}
+      {[...Array(3)].map((_, i) => (
         <motion.div
-          className="absolute -top-4 -right-4 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white text-xs"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: 'spring', stiffness: 500, damping: 20 }}
-        >
-          !
-        </motion.div>
-      )}
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            width: 4,
+            height: 4,
+            backgroundColor: color,
+            left: size - 2,
+            top: size - 2,
+          }}
+          animate={{
+            x: [-20, 20],
+            y: [-20, 20],
+            opacity: [1, 0],
+          }}
+          transition={{
+            duration: 0.8,
+            delay: i * 0.2,
+            repeat: Infinity,
+            repeatType: 'reverse',
+          }}
+        />
+      ))}
     </motion.div>
   )
 }

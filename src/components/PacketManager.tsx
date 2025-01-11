@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, forwardRef, useImperativeHandle } fro
 import { AnimatePresence } from 'framer-motion'
 import type { Device, Connection } from '../types/device'
 import type { Packet, PacketEvent } from '../types/packet'
-import { processPacket, calculatePacketPosition } from '../utils/packetProcessing'
+import { processPacket } from '../utils/packetProcessing'
 import PacketAnimation from './PacketAnimation'
 
 interface PacketManagerProps {
@@ -31,65 +31,22 @@ const PacketManager = forwardRef<PacketManagerHandle, PacketManagerProps>(({ dev
         return
       }
 
-      // 计算初始路径和下一跳
-      const result = processPacket(
-        {
-          id: `packet-${Date.now()}`,
-          sourceId,
-          targetId,
-          currentDeviceId: sourceId,
-          nextDeviceId: null,
-          status: 'waiting',
-          type: 'data',
-          path: [sourceId],
-          position: {
-            x: sourceDevice.position.x + 64,
-            y: sourceDevice.position.y + 64,
-          },
-        },
-        sourceDevice,
-        devices,
-        connections
-      )
-
-      console.log('Process result:', result)
-
-      if (result.error) {
-        console.warn('Packet processing error:', result.error)
-        onPacketEvent?.({
-          type: 'error',
-          packet: {
-            id: `packet-${Date.now()}`,
-            sourceId,
-            targetId,
-            currentDeviceId: sourceId,
-            nextDeviceId: null,
-            status: 'error',
-            type: 'data',
-            path: [sourceId],
-            position: {
-              x: sourceDevice.position.x + 64,
-              y: sourceDevice.position.y + 64,
-            },
-          },
-          timestamp: Date.now(),
-          error: result.error,
-        })
-        return
-      }
+      // 设备尺寸常量
+      const DEVICE_SIZE = 128 // 设备的宽高
+      const DEVICE_CENTER_OFFSET = DEVICE_SIZE / 2 // 中心点偏移
 
       const newPacket: Packet = {
         id: `packet-${Date.now()}`,
         sourceId,
         targetId,
         currentDeviceId: sourceId,
-        nextDeviceId: result.nextDeviceId,
-        status: 'transmitting',
+        nextDeviceId: targetId, // 初始时直接指向目标设备
+        status: 'waiting', // 使用waiting状态
         type: 'data',
         path: [sourceId],
         position: {
-          x: sourceDevice.position.x + 64,
-          y: sourceDevice.position.y + 64,
+          x: sourceDevice.position.x + DEVICE_CENTER_OFFSET,
+          y: sourceDevice.position.y + DEVICE_CENTER_OFFSET,
         },
       }
 
@@ -104,12 +61,14 @@ const PacketManager = forwardRef<PacketManagerHandle, PacketManagerProps>(({ dev
         type: 'start',
         packet: newPacket,
         timestamp: Date.now(),
+        sourceDevice,
+        targetDevice,
       })
 
       // 自动开始模拟
       setIsSimulating(true)
     },
-    [devices, connections, onPacketEvent]
+    [devices, onPacketEvent]
   )
 
   // 暴露方法给父组件
@@ -129,8 +88,17 @@ const PacketManager = forwardRef<PacketManagerHandle, PacketManagerProps>(({ dev
 
       if (!currentDevice || !nextDevice) return packet
 
+      // 设备尺寸常量
+      const DEVICE_SIZE = 128 // 设备的宽高
+      const DEVICE_CENTER_OFFSET = DEVICE_SIZE / 2 // 中心点偏移
+
       const progress = (Date.now() % 1000) / 1000 // 0-1之间的进度值
-      const newPosition = calculatePacketPosition({ x: currentDevice.position.x + 64, y: currentDevice.position.y + 64 }, { x: nextDevice.position.x + 64, y: nextDevice.position.y + 64 }, progress)
+
+      // 线性插值计算当前位置
+      const newPosition = {
+        x: currentDevice.position.x + DEVICE_CENTER_OFFSET + (nextDevice.position.x - currentDevice.position.x) * progress,
+        y: currentDevice.position.y + DEVICE_CENTER_OFFSET + (nextDevice.position.y - currentDevice.position.y) * progress,
+      }
 
       return {
         ...packet,
@@ -149,16 +117,17 @@ const PacketManager = forwardRef<PacketManagerHandle, PacketManagerProps>(({ dev
         // 更新位置
         const updatedPacket = updatePacketPosition(packet)
 
-        // 检查是否到达下一个设备
+        // 检查是否到达下一个设备（增加判断窗口，使状态更新更平滑）
         const progress = (Date.now() % 1000) / 1000
-        if (progress < 0.1 && updatedPacket.nextDeviceId) {
+        if (progress < 0.15 && updatedPacket.nextDeviceId) {
           // 到达下一个设备
           const nextDevice = devices.find((d) => d.id === updatedPacket.nextDeviceId)
           if (nextDevice) {
             const result = processPacket(updatedPacket, nextDevice, devices, connections)
 
-            // 更新数据包状态
-            const newStatus = result.error ? 'error' : result.nextDeviceId ? 'transmitting' : 'received'
+            // 更新数据包状态，增加中间状态
+            const newStatus = result.error ? 'error' : result.nextDeviceId ? 'transmitting' : updatedPacket.currentDeviceId === updatedPacket.targetId ? 'received' : 'transmitting'
+
             const newPacket: Packet = {
               ...updatedPacket,
               currentDeviceId: updatedPacket.nextDeviceId,
@@ -167,11 +136,15 @@ const PacketManager = forwardRef<PacketManagerHandle, PacketManagerProps>(({ dev
               path: [...updatedPacket.path, updatedPacket.nextDeviceId],
             }
 
-            // 触发事件
+            // 增加更详细的事件信息
             onPacketEvent?.({
               type: newStatus === 'error' ? 'error' : newStatus === 'received' ? 'receive' : 'hop',
               packet: newPacket,
               timestamp: Date.now(),
+              error: result.error,
+              sourceDevice: devices.find((d) => d.id === packet.sourceId),
+              targetDevice: devices.find((d) => d.id === packet.targetId),
+              currentDevice: nextDevice,
             })
 
             return newPacket
@@ -230,9 +203,70 @@ const PacketManager = forwardRef<PacketManagerHandle, PacketManagerProps>(({ dev
       </div>
 
       <AnimatePresence>
-        {packets.map((packet) => (
-          <PacketAnimation key={packet.id} packet={packet} />
-        ))}
+        {packets.map((packet) => {
+          // 获取当前设备和下一个设备
+          const currentDevice = devices.find((d) => d.id === packet.currentDeviceId)
+          const nextDevice = packet.nextDeviceId ? devices.find((d) => d.id === packet.nextDeviceId) : null
+
+          // 如果是等待状态，使用源设备和目标设备
+          const sourceDevice = devices.find((d) => d.id === packet.sourceId)
+          const targetDevice = devices.find((d) => d.id === packet.targetId)
+
+          // 设备尺寸常量
+          const DEVICE_SIZE = 128 // 设备的宽高
+          const DEVICE_CENTER_OFFSET = DEVICE_SIZE / 2 // 中心点偏移
+
+          // 根据状态决定起点和终点
+          let start, end
+          if (packet.status === 'waiting' && sourceDevice && targetDevice) {
+            start = {
+              x: sourceDevice.position.x + DEVICE_CENTER_OFFSET,
+              y: sourceDevice.position.y + DEVICE_CENTER_OFFSET,
+            }
+            end = {
+              x: targetDevice.position.x + DEVICE_CENTER_OFFSET,
+              y: targetDevice.position.y + DEVICE_CENTER_OFFSET,
+            }
+          } else if (currentDevice && nextDevice) {
+            start = {
+              x: currentDevice.position.x + DEVICE_CENTER_OFFSET,
+              y: currentDevice.position.y + DEVICE_CENTER_OFFSET,
+            }
+            end = {
+              x: nextDevice.position.x + DEVICE_CENTER_OFFSET,
+              y: nextDevice.position.y + DEVICE_CENTER_OFFSET,
+            }
+          } else {
+            return null
+          }
+
+          return (
+            <PacketAnimation
+              key={packet.id}
+              start={start}
+              end={end}
+              color={packet.type === 'error' ? '#EF4444' : packet.type === 'ack' ? '#10B981' : '#3B82F6'}
+              size={8}
+              duration={1}
+              onComplete={() => {
+                console.log('Packet animation completed:', packet.id)
+                // 如果是等待状态，更新为传输状态
+                if (packet.status === 'waiting') {
+                  setPackets((prev) =>
+                    prev.map((p) =>
+                      p.id === packet.id
+                        ? {
+                            ...p,
+                            status: 'transmitting',
+                          }
+                        : p
+                    )
+                  )
+                }
+              }}
+            />
+          )
+        })}
       </AnimatePresence>
     </>
   )

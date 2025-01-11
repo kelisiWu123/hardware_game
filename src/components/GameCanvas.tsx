@@ -384,6 +384,7 @@ export const GameCanvas = ({ devices, onDevicesChange, connections, onConnection
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      style={{ minHeight: '400px' }}
     >
       {/* 消息提示 */}
       {message.type && (

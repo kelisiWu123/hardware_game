@@ -2,6 +2,50 @@ import type { LevelConfig } from '../types/level'
 
 export const levels: LevelConfig[] = [
   {
+    id: 'tutorial',
+    name: '新手村',
+    description: '欢迎来到网络世界！让我们从最基础的开始，学习如何使用计算机发送数据包。',
+    difficulty: 'easy',
+    objectives: [
+      {
+        type: 'connect_devices',
+        description: '将两台计算机直接连接',
+        required: 1,
+        current: 0,
+      },
+      {
+        type: 'send_packets',
+        description: '在两台计算机之间发送一个数据包',
+        required: 1,
+        current: 0,
+      },
+    ],
+    requiredDevices: [{ type: 'computer', count: 2, minConnections: 1 }],
+    maxDevices: 2,
+    timeLimit: 300,
+    minScore: 60,
+    initialDevices: [
+      {
+        id: 'computer-1',
+        type: 'computer',
+        name: '计算机 A',
+        position: { x: 200, y: 300 },
+        description: '这是你的第一台计算机',
+        ports: 1,
+        connections: [],
+      },
+      {
+        id: 'computer-2',
+        type: 'computer',
+        name: '计算机 B',
+        position: { x: 600, y: 300 },
+        description: '这是你的第二台计算机',
+        ports: 1,
+        connections: [],
+      },
+    ],
+  },
+  {
     id: 'level-1',
     name: '初识网络',
     description: '欢迎来到网络世界！在这一关，你将学习如何连接计算机和交换机。',
@@ -27,6 +71,35 @@ export const levels: LevelConfig[] = [
     maxDevices: 3,
     timeLimit: 300,
     minScore: 70,
+    initialDevices: [
+      {
+        id: 'switch-1',
+        type: 'switch',
+        name: '交换机',
+        position: { x: 400, y: 300 },
+        description: '这是一台交换机，可以连接多台计算机',
+        ports: 8,
+        connections: [],
+      },
+      {
+        id: 'computer-1',
+        type: 'computer',
+        name: '计算机 A',
+        position: { x: 200, y: 300 },
+        description: '这是第一台计算机',
+        ports: 1,
+        connections: [],
+      },
+      {
+        id: 'computer-2',
+        type: 'computer',
+        name: '计算机 B',
+        position: { x: 600, y: 300 },
+        description: '这是第二台计算机',
+        ports: 1,
+        connections: [],
+      },
+    ],
   },
   {
     id: 'level-2',

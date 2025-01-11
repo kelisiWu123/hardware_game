@@ -1,3 +1,5 @@
+import type { Device } from './device'
+
 export type PacketType = 'data' | 'ack' | 'error'
 
 export interface Packet {
@@ -21,11 +23,15 @@ export interface ProcessResult {
   error?: string
 }
 
-export type PacketEventType = 'start' | 'hop' | 'receive' | 'error'
+export type PacketEventType = 'start' | 'hop' | 'receive' | 'error' | 'progress'
 
 export interface PacketEvent {
   type: PacketEventType
   packet: Packet
   timestamp: number
   error?: string
+  sourceDevice?: Device
+  targetDevice?: Device
+  currentDevice?: Device
+  progress?: number
 }
